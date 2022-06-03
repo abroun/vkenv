@@ -56,6 +56,8 @@ typedef struct
   // GPU selection config
   // If target_device_idx<0, the GPU with best performances is chosen automatically
   int32_t target_device_idx;
+
+  bool allow_cpu;
 } vkenv_DeviceConfig;
 
 // Create a Vulkan instance and load the Vulkan API. There should never be more than one instance per process since the Vulkan API

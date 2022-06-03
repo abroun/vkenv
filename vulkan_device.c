@@ -254,13 +254,14 @@ bool findQueueFamilyIndex(VkPhysicalDevice physical_device, uint32_t *queue_fami
 }
 
 float getPhysicalDeviceCapabilityScore(VkPhysicalDevice device, uint32_t required_device_extension_count, const char **required_device_extensions,
-                                       const uint32_t req_general_queue_cnt, const uint32_t req_compute_queue_cnt, const uint32_t req_transfer_queue_cnt)
+                                       const uint32_t req_general_queue_cnt, const uint32_t req_compute_queue_cnt, const uint32_t req_transfer_queue_cnt,
+                                       bool allow_cpu)
 {
   // Need present if GPU_DEBUG and support
   // GPU score = queue_types_multiplier * heap_size_multiplier
   // queue_types_multiplier = number of different queue types available (general purpose, async compute, async transfer)
   // heap_size_multiplier = available GPU memory size in Gb
-  // If the GPU is not a DISCRETE_GPU or an INTEGRATED_GPU, the returned score will be 0.f
+  // If allow_cpu is false and the GPU is not a DISCRETE_GPU or an INTEGRATED_GPU, the returned score will be 0.f
   // If the requested device extensions are not support by the GPU, the returned score will be 0.f
 
   float valid_type_multiplier = 0.f;
@@ -268,10 +269,10 @@ float getPhysicalDeviceCapabilityScore(VkPhysicalDevice device, uint32_t require
   float extensions_supported_multiplier = 0.f;
   float heap_size_multiplier = 0.f;
 
-  // Check GPU type (only accept INTEGRATED or DEDICATED GPUs)
+  // Check GPU type (only accept INTEGRATED or DEDICATED GPUs if allow_cpu is false)
   VkPhysicalDeviceProperties props;
   vkGetPhysicalDeviceProperties(device, &props);
-  if (props.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && props.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+  if (!allow_cpu && props.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && props.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
   {
     logInfo(LOG_TAG, "\t\t -> Invalid GPU type");
     valid_type_multiplier = 0.f;
@@ -382,7 +383,7 @@ bool getPhysicalDevice(vkenv_Device device, vkenv_DeviceConfig *config)
       logInfo(LOG_TAG, "\t Device %d (name: %s, device ID: %d,vendor ID: %d)", i, candidate_props.deviceName, candidate_props.deviceID,
               candidate_props.vendorID);
       float score = getPhysicalDeviceCapabilityScore(devices[i], config->device_extension_count, config->device_extensions, config->nb_general_queues,
-                                                     config->nb_async_compute_queues, config->nb_async_transfer_queues);
+                                                     config->nb_async_compute_queues, config->nb_async_transfer_queues, config->allow_cpu);
       if (score > best_gpu_score)
       {
         best_gpu_score = score;
